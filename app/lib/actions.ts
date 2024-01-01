@@ -4,6 +4,8 @@ import { z } from 'zod';
 import { sql } from '@vercel/postgres';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
+import { signIn } from '@/auth';
+import { AuthError } from 'next-auth';
 
 const FormSchema = z.object({
   id: z.string(),
@@ -112,4 +114,44 @@ export async function deleteInvoice(id: string) {
     };
   }
   revalidatePath('/dashboard/invoices');
+}
+
+/**
+ * user login authentication
+ * 
+ * @param prevState contains the state passed from the useFormState
+ * @param formData login data
+ * @returns user or error
+ */
+export async function authenticate(
+  prevState: string | undefined,
+  formData: FormData,
+) {
+  try {
+    console.log(formData);
+    console.log({...formData})
+    const user = await signIn('credentials', {
+      redirectTo: '/dashboard',
+      email: formData.get('email'),
+      password: formData.get('password'),
+    });
+    // signIn执行完就结束了，以下并没有走
+    alert(1);
+    console.log('user:', user);
+    // console.log(111);
+    // if (user) {
+    //   console.log(2);
+    //   redirect('/dashboard');
+    // }
+  } catch (error) {
+    if (error instanceof AuthError) {
+      switch (error.type) {
+        case 'CredentialsSignin':
+          return 'Invalid credentials.';
+        default:
+          return 'Something went wrong.';
+      }
+    }
+    throw error;
+  }
 }
